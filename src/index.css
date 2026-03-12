@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Rubik:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* קונדטוריית סבתא יואל - Design System
+   Warm, rustic, homey cafe aesthetic
+*/
+
+@layer base {
+  :root {
+    /* Warm cream background */
+    --background: 35 30% 97%;
+    --foreground: 0 100% 7%;
+
+    /* Cards with subtle warmth */
+    --card: 40 40% 98%;
+    --card-foreground: 0 100% 7%;
+
+    --popover: 40 40% 98%;
+    --popover-foreground: 0 100% 7%;
+
+    /* Deep maroon brown - from business primary #240000 */
+    --primary: 0 100% 7%;
+    --primary-foreground: 40 30% 96%;
+
+    /* Warm beige/cream */
+    --secondary: 35 40% 92%;
+    --secondary-foreground: 0 100% 7%;
+
+    /* Muted warm tones */
+    --muted: 30 20% 90%;
+    --muted-foreground: 20 15% 40%;
+
+    /* Forest green accent (from grandmother's apron) */
+    --accent: 150 30% 30%;
+    --accent-foreground: 40 30% 96%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 40 30% 96%;
+
+    /* Warm borders */
+    --border: 30 20% 85%;
+    --input: 30 20% 85%;
+    --ring: 0 100% 7%;
+
+    --radius: 0.75rem;
+
+    /* Custom colors */
+    --warm-brown: 25 60% 25%;
+    --golden: 40 80% 50%;
+    --cream: 40 40% 95%;
+    --terracotta: 15 50% 45%;
+  }
+
+  .dark {
+    --background: 20 30% 8%;
+    --foreground: 35 30% 95%;
+
+    --card: 20 25% 12%;
+    --card-foreground: 35 30% 95%;
+
+    --popover: 20 25% 12%;
+    --popover-foreground: 35 30% 95%;
+
+    --primary: 35 70% 75%;
+    --primary-foreground: 20 30% 8%;
+
+    --secondary: 20 20% 18%;
+    --secondary-foreground: 35 30% 95%;
+
+    --muted: 20 15% 20%;
+    --muted-foreground: 30 15% 60%;
+
+    --accent: 150 25% 40%;
+    --accent-foreground: 35 30% 95%;
+
+    --destructive: 0 62% 35%;
+    --destructive-foreground: 35 30% 95%;
+
+    --border: 20 15% 20%;
+    --input: 20 15% 20%;
+    --ring: 35 70% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-heebo antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-rubik font-bold;
+  }
+
+  /* Visible focus indicators for keyboard navigation - Israeli Standard 5568 / WCAG 2.1 AA */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring rounded-sm;
+  }
+
+  /* Skip to content link */
+  .skip-to-content {
+    @apply absolute -top-12 right-4 z-[9999] bg-primary text-primary-foreground px-4 py-2 rounded-b-lg font-medium transition-all duration-200;
+  }
+  .skip-to-content:focus {
+    @apply top-0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .btn-cta {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 
+           px-6 py-3 rounded-full font-medium transition-all duration-300
+           shadow-lg hover:shadow-xl hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80
+           px-5 py-2.5 rounded-full font-medium transition-all duration-300
+           border border-border;
+  }
+
+  .card-product {
+    @apply bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-xl
+           transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-primary text-center mb-4;
+  }
+
+  .section-subtitle {
+    @apply text-muted-foreground text-center mb-8;
+  }
+
+  .nav-link {
+    @apply text-foreground/80 hover:text-primary transition-colors duration-200
+           flex items-center gap-2 font-medium;
+  }
+
+  .category-chip {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+           border border-border cursor-pointer;
+  }
+
+  .category-chip-active {
+    @apply bg-primary text-primary-foreground border-primary;
+  }
+
+  .category-chip-inactive {
+    @apply bg-background text-foreground hover:bg-secondary;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes tray-item-land {
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+    margin-top: -50px;
+  }
+  50% {
+    opacity: 1;
+    filter: blur(0);
+    margin-top: 6px;
+  }
+  70% {
+    margin-top: -3px;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    margin-top: 0;
+  }
+}
