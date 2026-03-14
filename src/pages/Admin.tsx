@@ -28,16 +28,22 @@ const Admin = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log("No session found");
         navigate("/auth");
         return;
       }
 
-      const { data: roleData } = await supabase
+      console.log("Session user id:", session.user.id);
+
+      const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id)
         .eq("role", "admin")
-        .maybeSingle();
+        .limit(1)
+        .single();
+
+      console.log("roleData:", roleData, "roleError:", roleError);
 
       if (!roleData) {
         toast.error("אין לך הרשאות ניהול");

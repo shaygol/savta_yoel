@@ -18,7 +18,7 @@ const Footer = () => {
 
   const businessName = settings?.business_name || "קונדטוריית סבתא יואל";
   const slogan = settings?.business_slogan || "מקום קטן עם טעמים גדולים";
-  const footerText = settings?.footer_section_text || "בית קפה כפרי בלב הנוף של הרי הגלבוע";
+  const footerText = settings?.footer_section_text || "בית קפה כפרי בלב הנוף של ההרים התנ״כיים";
   const contactPhone = settings?.contact_phone || "0508272844";
   const address = settings?.business_address || "עמק חרוד, הגלבוע";
   const logo = settings?.logo_url || logoDefault;
@@ -81,16 +81,16 @@ const Footer = () => {
           </div>
 
           {/* Opening Hours */}
-          <div className="text-center">
-            <h4 className="font-bold text-lg mb-4 flex items-center justify-center gap-2">
+          <div className="text-right">
+            <h4 className="font-bold text-lg mb-4 flex items-center justify-end gap-2">
               <Clock className="w-5 h-5" />
               שעות פתיחה
             </h4>
             <ul className="space-y-1 text-sm text-primary-foreground/80">
               {openingHours.map(({ key, day, hours }) => (
-                <li key={key} className="flex justify-center gap-3">
-                  <span className="font-medium w-16">{day}:</span>
-                  <span className={hours === "סגור" ? "text-primary-foreground/50" : ""}>{hours}</span>
+                <li key={key} className="flex justify-end gap-3">
+                  <span className="font-medium">{day}:</span>
+                  <span className={`w-24 text-right ${hours === "סגור" ? "text-primary-foreground/50" : ""}`}>{hours}</span>
                 </li>
               ))}
             </ul>
