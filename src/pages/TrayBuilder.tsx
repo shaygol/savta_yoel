@@ -57,13 +57,13 @@ const TrayBuilder = () => {
   const { data: products, isLoading } = useProducts();
   const { data: siteSettings } = useSettings();
   const categories = useCategories(products);
-  const TRAY_SIZES = buildTraySizes(siteSettings?.tray_discount_config as any);
+  const TRAY_SIZES = buildTraySizes(siteSettings?.tray_discount_config);
   const [activeCategory, setActiveCategory] = useState("הכל");
   const [trayItems, setTrayItems] = useState<TrayItem[]>([]);
   const [selectedTraySize, setSelectedTraySize] = useState<TraySizeConfig>(TRAY_SIZES[1]);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [customPositions, setCustomPositions] = useState<Record<string, ItemPosition>>({});
-  const { addItem } = useCart();
+  const { addItem, updateQuantity } = useCart();
   const trayRef = useRef<HTMLDivElement>(null);
 
   const filteredProducts = activeCategory === "הכל"
@@ -147,15 +147,18 @@ const TrayBuilder = () => {
     if (trayItems.length === 0) return;
     trayItems.forEach(item => {
       addItem({ id: item.id, name: item.name, price: item.price, image_url: item.image_url || undefined, max_quantity_per_order: item.max_quantity_per_order });
-      for (let i = 1; i < item.quantity; i++) {
-        addItem({ id: item.id, name: item.name, price: item.price, image_url: item.image_url || undefined, max_quantity_per_order: item.max_quantity_per_order });
+    });
+    // Set correct quantities after all items are added
+    trayItems.forEach(item => {
+      if (item.quantity > 1) {
+        updateQuantity(item.id, item.quantity);
       }
     });
     setShowOrderModal(true);
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir="rtl">
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
@@ -420,7 +423,7 @@ const TrayBuilder = () => {
         </div>
       </main>
       <Footer />
-      <OrderModal open={showOrderModal} onOpenChange={setShowOrderModal} trayLayout={buildTrayLayout()} />
+      <OrderModal open={showOrderModal} onOpenChange={setShowOrderModal} trayLayout={buildTrayLayout()} trayDiscount={discount.discountAmount} />
     </div>
   );
 };

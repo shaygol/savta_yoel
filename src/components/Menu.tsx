@@ -11,7 +11,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import ProductDetailDialog from "./ProductDetailDialog";
 
 const Menu = () => {
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading, isError, refetch } = useProducts();
   const { data: settings } = useSettings();
   const { data: ratingSummary } = useProductRatingSummary(products);
   const categories = useCategories(products);
@@ -45,6 +45,31 @@ const Menu = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section id="menu" className="py-16 bg-secondary/30">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="section-title">התפריט שלנו</h2>
+          <div className="max-w-sm mx-auto mt-8 space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-5xl mx-auto opacity-40 pointer-events-none" aria-hidden="true">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-card rounded-2xl overflow-hidden">
+                  <Skeleton className="aspect-square" />
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-6 w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-muted-foreground text-sm">לא הצלחנו לטעון את התפריט</p>
+            <Button variant="outline" onClick={() => refetch()}>נסה שוב</Button>
           </div>
         </div>
       </section>

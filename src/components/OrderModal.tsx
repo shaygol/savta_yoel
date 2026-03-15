@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -16,13 +17,16 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Tag, Award, X } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
+import { Tag, Award, X, Calendar } from "lucide-react";
 import ThankYouModal from "./ThankYouModal";
 
 const orderSchema = z.object({
   name: z.string().min(2, "שם חייב להכיל לפחות 2 תווים").max(100),
   phone: z.string().regex(/^0\d{9}$/, "מספר טלפון לא תקין (10 ספרות)"),
   notes: z.string().max(500).optional(),
+  pickup_date: z.string().min(1, "נא לבחור תאריך איסוף"),
+  pickup_time: z.string().min(1, "נא לבחור שעת איסוף"),
 });
 
 interface TrayLayoutData {
@@ -40,9 +44,10 @@ interface OrderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trayLayout?: TrayLayoutData | null;
+  trayDiscount?: number;
 }
 
-const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
+const OrderModal = ({ open, onOpenChange, trayLayout, trayDiscount = 0 }: OrderModalProps) => {
   const { items, totalAmount, clearCart } = useCart();
   const { data: settings } = useSettings();
   const validateCoupon = useValidateCoupon();
@@ -50,10 +55,13 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showThankYou, setShowThankYou] = useState(false);
   const [savedAmount, setSavedAmount] = useState(0);
+  const [pointsEarnedForModal, setPointsEarnedForModal] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
   const [couponCode, setCouponCode] = useState("");
@@ -67,8 +75,8 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
       : Math.min(appliedCoupon.discount_value, totalAmount)
     : 0;
 
-  const pointsDiscount = usePoints ? Math.min(pointsToRedeem, totalAmount - couponDiscount) : 0;
-  const finalAmount = Math.max(0, totalAmount - couponDiscount - pointsDiscount);
+  const pointsDiscount = usePoints ? Math.min(pointsToRedeem, totalAmount - couponDiscount - trayDiscount) : 0;
+  const finalAmount = Math.max(0, totalAmount - couponDiscount - pointsDiscount - trayDiscount);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -88,6 +96,8 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
       setCouponCode("");
       setUsePoints(false);
       setPointsToRedeem(0);
+      setPickupDate("");
+      setPickupTime("");
     }
   }, [open]);
 
@@ -106,7 +116,7 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
     e.preventDefault();
     setErrors({});
 
-    const validation = orderSchema.safeParse({ name, phone, notes });
+    const validation = orderSchema.safeParse({ name, phone, notes, pickup_date: pickupDate, pickup_time: pickupTime });
     if (!validation.success) {
       const fieldErrors: Record<string, string> = {};
       validation.error.errors.forEach(err => { if (err.path[0]) fieldErrors[err.path[0] as string] = err.message; });
@@ -125,15 +135,18 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
         customer_name: name.trim(),
         customer_phone: phone.trim(),
         items: orderItems,
-        total_amount: totalAmount,
+        total_amount: finalAmount,
         notes: [
           notes.trim(),
+          trayDiscount > 0 ? `הנחת מגש: -₪${trayDiscount}` : "",
           appliedCoupon ? `קופון: ${couponCode.toUpperCase()} (-₪${couponDiscount})` : "",
           pointsDiscount > 0 ? `נקודות: -₪${pointsDiscount}` : "",
         ].filter(Boolean).join(" | ") || null,
         status: 'pending',
         payment_status: 'unpaid',
-        ...(hasTrayLayout ? { tray_layout: trayLayout as any } : {}),
+        pickup_date: pickupDate,
+        pickup_time: pickupTime,
+        ...(hasTrayLayout ? { tray_layout: trayLayout as unknown as Json } : {}),
       });
 
       if (error) throw error;
@@ -154,15 +167,27 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
         });
       }
 
+      // Award loyalty points: 1 point per ₪10 spent
+      const pointsEarned = Math.floor(finalAmount / 10);
+      if (pointsEarned > 0 && userId) {
+        await supabase.from('loyalty_points').insert({
+          user_id: userId,
+          points: pointsEarned,
+          transaction_type: 'earned',
+          description: `נקודות נאמנות על הזמנה`,
+        });
+      }
+
       if (userId) {
         await supabase.from("profiles").update({ name: name.trim(), phone: phone.trim() }).eq("user_id", userId);
       }
 
       setSavedAmount(finalAmount);
+      setPointsEarnedForModal(userId ? Math.floor(finalAmount / 10) : 0);
       onOpenChange(false);
       setShowThankYou(true);
       clearCart();
-      setName(""); setPhone(""); setNotes("");
+      setName(""); setPhone(""); setNotes(""); setPickupDate(""); setPickupTime("");
     } catch (error) {
       if (import.meta.env.DEV) console.error('Order submission error:', error);
       toast.error("שגיאה בשליחת ההזמנה, נסו שוב");
@@ -187,9 +212,15 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
                   <span>₪{item.price * item.quantity}</span>
                 </div>
               ))}
+              {trayDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>הנחת מגש אירוח</span>
+                  <span>-₪{trayDiscount.toFixed(0)}</span>
+                </div>
+              )}
               <div className="border-t pt-2 flex justify-between font-bold">
                 <span>סה״כ</span>
-                <span>₪{totalAmount}</span>
+                <span>₪{trayDiscount > 0 ? (totalAmount - trayDiscount).toFixed(0) : totalAmount}</span>
               </div>
             </div>
 
@@ -265,6 +296,45 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
               <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="הערות מיוחדות, אלרגיות וכו׳" rows={3} />
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="pickup_date" className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  תאריך איסוף *
+                </Label>
+                <Input
+                  id="pickup_date"
+                  type="date"
+                  value={pickupDate}
+                  onChange={e => setPickupDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  dir="ltr"
+                  className={errors.pickup_date ? "border-destructive" : ""}
+                  aria-invalid={!!errors.pickup_date}
+                  aria-describedby={errors.pickup_date ? "pickup-date-error" : undefined}
+                />
+                {errors.pickup_date && <p id="pickup-date-error" role="alert" className="text-destructive text-sm">{errors.pickup_date}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pickup_time">שעת איסוף *</Label>
+                <Select value={pickupTime} onValueChange={setPickupTime}>
+                  <SelectTrigger id="pickup_time" className={errors.pickup_time ? "border-destructive" : ""} aria-invalid={!!errors.pickup_time}>
+                    <SelectValue placeholder="בחר שעה" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 18 }, (_, i) => {
+                      const hour = Math.floor(i / 2) + 9;
+                      const minutes = i % 2 === 0 ? "00" : "30";
+                      if (hour > 17) return null;
+                      const label = `${hour}:${minutes}`;
+                      return <SelectItem key={label} value={label}>{label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+                {errors.pickup_time && <p role="alert" className="text-destructive text-sm">{errors.pickup_time}</p>}
+              </div>
+            </div>
+
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? "שולח..." : `שלח הזמנה${finalAmount !== totalAmount ? ` (₪${finalAmount})` : ""}`}
             </Button>
@@ -277,9 +347,11 @@ const OrderModal = ({ open, onOpenChange, trayLayout }: OrderModalProps) => {
         onOpenChange={setShowThankYou}
         totalAmount={savedAmount}
         payboxUrl={settings?.paybox_url}
+        payboxEnabled={settings?.paybox_enabled}
         bitUrl={settings?.bit_payment_url}
         bitEnabled={settings?.bit_enabled}
         phone={settings?.contact_phone}
+        pointsEarned={pointsEarnedForModal}
       />
     </>
   );

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Package, Clock, ShoppingBag, Pencil, Save, X, RefreshCw, Award } from "lucide-react";
+import { ArrowRight, Package, Clock, ShoppingBag, Pencil, Save, X, RefreshCw, Award, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import type { Json } from "@/integrations/supabase/types";
@@ -21,6 +21,17 @@ interface OrderItem {
   price: number;
 }
 
+interface TrayLayoutData {
+  traySize: string;
+  items: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    image_url?: string | null;
+    positions?: Array<{ x: number; y: number }>;
+  }>;
+}
+
 interface Order {
   id: string;
   created_at: string;
@@ -29,6 +40,7 @@ interface Order {
   total_amount: number;
   items: Json;
   notes: string | null;
+  tray_layout: Json | null;
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -45,6 +57,105 @@ const paymentMap: Record<string, { label: string; variant: "default" | "secondar
   paid: { label: "שולם", variant: "default" },
   partial: { label: "שולם חלקית", variant: "secondary" },
 };
+
+const parseTrayLayout = (raw: Json | null): TrayLayoutData | null => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const layout = raw as Record<string, unknown>;
+  if (!Array.isArray(layout.items)) return null;
+  return raw as unknown as TrayLayoutData;
+};
+
+const TRAY_SIZE_LABEL: Record<string, string> = {
+  small: 'מגש קטן',
+  medium: 'מגש בינוני',
+  large: 'מגש גדול',
+};
+
+function MiniTrayPreview({ layout }: { layout: TrayLayoutData }) {
+  const goldenAngle = 137.508 * (Math.PI / 180);
+  const radius = 80;
+  const itemSize = 34;
+
+  const positions: { item: TrayLayoutData['items'][0]; x: number; y: number; instanceIndex: number }[] = [];
+  let idx = 0;
+  layout.items.forEach(item => {
+    const count = Math.min(item.quantity, 4);
+    for (let i = 0; i < count; i++) {
+      const customPos = item.positions?.[i];
+      const angle = idx * goldenAngle;
+      const r = idx === 0 ? 0 : Math.min(15 + Math.sqrt(idx) * 16, radius - 20);
+      positions.push({
+        item,
+        x: customPos ? (customPos.x * radius) / 170 : Math.cos(angle) * r,
+        y: customPos ? (customPos.y * radius) / 170 : Math.sin(angle) * r,
+        instanceIndex: i,
+      });
+      idx++;
+    }
+  });
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border">
+      <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+        <UtensilsCrossed className="w-3 h-3" />
+        {TRAY_SIZE_LABEL[layout.traySize] || 'מגש אירוח'}
+      </p>
+      <div
+        style={{
+          width: radius * 2 + itemSize,
+          height: radius * 2 + itemSize,
+          position: 'relative',
+          margin: '0 auto',
+          perspective: '400px',
+        }}
+      >
+        <div
+          style={{
+            width: radius * 2,
+            height: radius * 2,
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse at 40% 35%, #E8D4A8 0%, #C9A96E 40%, #A8853C 80%, #8B6914 100%)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            position: 'absolute',
+            top: itemSize / 2,
+            left: itemSize / 2,
+            transform: 'rotateX(15deg)',
+          }}
+        />
+        {positions.map((pos, i) => (
+          <div
+            key={`${pos.item.id}__${pos.instanceIndex}__${i}`}
+            style={{
+              position: 'absolute',
+              left: radius + pos.x + itemSize / 2 - itemSize / 2 + itemSize / 2,
+              top: radius + pos.y + itemSize / 2 - itemSize / 2 + itemSize / 2,
+              width: itemSize,
+              height: itemSize,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '1.5px solid rgba(201,169,110,0.5)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              background: '#E8D5B7',
+            }}
+          >
+            {pos.item.image_url ? (
+              <img
+                src={pos.item.image_url}
+                alt={pos.item.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                loading="lazy"
+              />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: '#8B7355', textAlign: 'center', padding: '2px' }}>
+                {pos.item.name}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const MyOrders = () => {
   const navigate = useNavigate();
@@ -76,7 +187,7 @@ const MyOrders = () => {
 
       if (!profile?.phone) { setHasPhone(false); setIsLoading(false); return; }
 
-      const { data, error } = await supabase.from("orders").select("id, created_at, status, payment_status, total_amount, items, notes").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("orders").select("id, created_at, status, payment_status, total_amount, items, notes, tray_layout").eq("customer_phone", profile.phone).order("created_at", { ascending: false });
       if (!error && data) setOrders(data);
       setIsLoading(false);
     };
@@ -265,6 +376,9 @@ const MyOrders = () => {
                     </div>
                     {order.notes && (
                       <p className="text-sm text-muted-foreground border-t border-border pt-2 mt-2">הערות: {order.notes}</p>
+                    )}
+                    {parseTrayLayout(order.tray_layout) && (
+                      <MiniTrayPreview layout={parseTrayLayout(order.tray_layout)!} />
                     )}
                     <div className="flex justify-between items-center border-t border-border pt-3 mt-3">
                       <span className="font-bold text-lg">סה״כ: ₪{Number(order.total_amount).toFixed(0)}</span>

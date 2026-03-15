@@ -1,4 +1,4 @@
-import { Check, CreditCard, Phone } from "lucide-react";
+import { Check, CreditCard, Phone, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,9 +12,11 @@ interface ThankYouModalProps {
   onOpenChange: (open: boolean) => void;
   totalAmount: number;
   payboxUrl?: string;
+  payboxEnabled?: boolean;
   bitUrl?: string;
   bitEnabled?: boolean;
   phone?: string;
+  pointsEarned?: number;
 }
 
 const ThankYouModal = ({
@@ -22,9 +24,11 @@ const ThankYouModal = ({
   onOpenChange,
   totalAmount,
   payboxUrl,
+  payboxEnabled,
   bitUrl,
   bitEnabled,
   phone,
+  pointsEarned = 0,
 }: ThankYouModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,12 +47,18 @@ const ThankYouModal = ({
 
           <div className="bg-muted/50 rounded-lg p-4">
             <p className="text-lg font-bold">סכום לתשלום: ₪{totalAmount}</p>
+            {pointsEarned > 0 && (
+              <p className="text-sm text-accent flex items-center justify-center gap-1 mt-1">
+                <Award className="w-4 h-4" />
+                צברתם {pointsEarned} נקודות נאמנות על הזמנה זו!
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
             <p className="font-medium">אפשרויות תשלום:</p>
             
-            {payboxUrl && (
+            {payboxEnabled && payboxUrl && (
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2"
