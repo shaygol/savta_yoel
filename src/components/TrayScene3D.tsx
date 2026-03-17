@@ -68,6 +68,7 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
 
   // Track new items for bounce animation
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
+  const [glowKeys, setGlowKeys] = useState<Set<string>>(new Set());
   const prevKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -79,8 +80,10 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
     prevKeysRef.current = currentKeys;
     if (justAdded.size > 0) {
       setNewKeys(justAdded);
+      setGlowKeys(justAdded);
       const timeout = setTimeout(() => setNewKeys(new Set()), 500);
-      return () => clearTimeout(timeout);
+      const glowTimeout = setTimeout(() => setGlowKeys(new Set()), 900);
+      return () => { clearTimeout(timeout); clearTimeout(glowTimeout); };
     }
   }, [autoPositions]);
 
@@ -196,6 +199,7 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
           const isHovered = hoveredKey === key;
           const isDragging = draggingKey === key;
           const isNew = newKeys.has(key);
+          const isGlowing = glowKeys.has(key);
 
           return (
             <div
@@ -214,7 +218,7 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
                 cursor: readOnly ? 'default' : isDragging ? 'grabbing' : 'grab',
                 zIndex: isDragging ? 50 : isHovered ? 10 : 1,
                 userSelect: 'none',
-                animation: isNew ? 'tray-item-land 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' : 'none',
+                animation: isNew ? 'tray-item-land 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' : 'none',
               }}
             >
               {/* Remove button on hover */}
@@ -257,6 +261,7 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
                       : '0 3px 10px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15)',
                   border: '2px solid rgba(201,169,110,0.4)',
                   pointerEvents: 'none',
+                  animation: isGlowing ? 'tray-item-glow 0.7s ease-out forwards' : 'none',
                 }}
               >
                 {pos.item.image_url ? (
@@ -274,7 +279,7 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
                 )}
               </div>
 
-              {/* Quantity badge */}
+              {/* Quantity badge — shown on first instance */}
               {pos.item.quantity > 1 && pos.instanceIndex === 0 && (
                 <div
                   style={{
@@ -299,14 +304,39 @@ export default function TrayScene3D({ items, traySize, onRemoveItem, customPosit
                   {pos.item.quantity}
                 </div>
               )}
+
+              {/* Hidden quantity indicator — shown only on last visible instance when quantity > 4 */}
+              {pos.item.quantity > 4 && pos.instanceIndex === 3 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-6px',
+                    left: '50%',
+                    transform: `translateX(-50%) rotate(-${pos.rotation}deg)`,
+                    background: 'rgba(0,0,0,0.65)',
+                    color: 'white',
+                    borderRadius: '10px',
+                    padding: '1px 6px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                  }}
+                  title={`${pos.item.quantity} יחידות — מוצגות 4 בלבד`}
+                >
+                  +{pos.item.quantity - 4}
+                </div>
+              )}
             </div>
           );
         })}
 
         {/* Empty state */}
         {items.length === 0 && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A8853C', fontSize: '14px', fontWeight: 500, textAlign: 'center', opacity: 0.7 }}>
-            בחר מוצרים<br />מהרשימה למטה
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#A8853C', fontSize: '13px', fontWeight: 500, textAlign: 'center', gap: '8px', animation: 'tray-empty-pulse 2.5s ease-in-out infinite' }}>
+            <span style={{ fontSize: '28px' }}>🍽️</span>
+            <span>בחר מוצרים<br />מהרשימה למטה</span>
           </div>
         )}
       </div>
