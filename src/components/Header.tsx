@@ -148,6 +148,12 @@ const Header = () => {
           {/* Cart, CTA and Mobile Menu */}
           <div className="flex items-center gap-2">
             <Cart />
+            {!user && (
+              <Link to="/auth" className="hidden md:flex items-center gap-1 nav-link text-sm">
+                <LogIn className="w-4 h-4" />
+                <span>התחברות</span>
+              </Link>
+            )}
             <a href={`tel:${contactPhone}`} className="btn-cta flex items-center gap-2">
               <Phone className="w-4 h-4" />
               <span className="hidden sm:inline">צור קשר</span>
