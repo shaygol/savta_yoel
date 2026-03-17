@@ -21,6 +21,7 @@ export interface Settings {
   hero_image_url?: string;
   hero_images?: string[];
   paybox_url?: string;
+  paybox_enabled?: boolean;
   bit_enabled?: boolean;
   bit_payment_url?: string;
   site_enabled?: boolean;

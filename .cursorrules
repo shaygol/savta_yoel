@@ -30,14 +30,6 @@ You are an expert Full-stack developer. Your goal is to maintain high-quality co
 - TYPOGRAPHY: Use modern Hebrew fonts like 'Heebo' or 'Assistant' for a professional look. Ensure font weights are consistent (400 for body, 600/700 for headings).
 - All user-facing text must be in Hebrew.
 
-## Lovable Detection (Auto-Check)
-- On first interaction, check if the project was scaffolded by Lovable by looking for these markers:
-  1. `lovable-tagger` in `devDependencies` inside `package.json`.
-  2. `componentTagger` imported from `lovable-tagger` in `vite.config.ts`.
-  3. README.md containing "Welcome to your Lovable project" or a `lovable.dev/projects/` URL.
-- If detected: Note that the project originated from Lovable. Respect existing Lovable component patterns, shadcn/ui structure, and the `@` path alias convention.
-- If not detected: Treat as a standard project and follow the rules defined here.
-
 ## Standards
 - Prioritize modularity and reusability in all components and utilities.
 - Use Arrow Functions for components.

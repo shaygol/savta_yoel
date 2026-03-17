@@ -38,6 +38,8 @@ const ArticlesTab = () => {
     display_order: 0,
   });
 
+  const SUPABASE_STORAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/images/`;
+
   const { data: articles, isLoading } = useQuery({
     queryKey: ["admin-articles"],
     queryFn: async () => {
@@ -103,6 +105,22 @@ const ArticlesTab = () => {
     setIsDialogOpen(false);
   };
 
+  const handleDialogClose = async (open: boolean) => {
+    if (!open) {
+      const originalImageUrl = editingArticle?.image_url || "";
+      const currentImageUrl = formData.image_url;
+      if (
+        currentImageUrl &&
+        currentImageUrl !== originalImageUrl &&
+        currentImageUrl.startsWith(SUPABASE_STORAGE_URL)
+      ) {
+        const filePath = currentImageUrl.replace(SUPABASE_STORAGE_URL, "");
+        await supabase.storage.from("images").remove([filePath]);
+      }
+      resetForm();
+    }
+  };
+
   const openEdit = (article: Article) => {
     setEditingArticle(article);
     setFormData({
@@ -131,7 +149,7 @@ const ArticlesTab = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>כתבות ואזכורים</CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
               <Button onClick={() => resetForm()}>
                 <Plus className="w-4 h-4 ml-2" />

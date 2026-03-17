@@ -14,7 +14,7 @@ create table public.articles (
   url text,
   snippet text,
   image_url text,
-  publication_date text,
+  publication_date date,
   display_order integer,
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
@@ -65,11 +65,13 @@ create table public.orders (
   id uuid primary key default gen_random_uuid(),
   customer_name text not null,
   customer_phone text not null,
-  customer_id uuid references public.customers(id),
+  customer_id uuid references public.customers(id) on delete set null,
   items jsonb default '[]'::jsonb not null,
   total_amount numeric default 0 not null,
+  -- status: pending | confirmed | ready | completed | cancelled
   status text default 'pending' not null,
-  payment_status text default 'pending' not null,
+  -- payment_status: unpaid | paid | refunded
+  payment_status text default 'unpaid' not null,
   notes text,
   admin_notes text,
   tray_layout jsonb,
@@ -81,8 +83,8 @@ create table public.orders (
 -- loyalty_points
 create table public.loyalty_points (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  order_id uuid references public.orders(id),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  order_id uuid references public.orders(id) on delete set null,
   transaction_type text not null,
   points integer default 0 not null,
   description text,
@@ -108,7 +110,7 @@ create table public.products (
 -- product_images
 create table public.product_images (
   id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products(id),
+  product_id uuid not null references public.products(id) on delete cascade,
   image_url text not null,
   display_order integer,
   created_at timestamptz default now() not null
@@ -117,7 +119,7 @@ create table public.product_images (
 -- profiles
 create table public.profiles (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
   name text,
   phone text,
   created_at timestamptz default now() not null,
@@ -127,8 +129,8 @@ create table public.profiles (
 -- reviews
 create table public.reviews (
   id uuid primary key default gen_random_uuid(),
-  product_id uuid not null references public.products(id),
-  user_id uuid not null,
+  product_id uuid not null references public.products(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
   rating integer not null,
   comment text,
   created_at timestamptz default now() not null,
@@ -239,3 +241,7 @@ create policy "Public read access" on public.product_images for select using (tr
 create policy "Public read access" on public.reviews for select using (true);
 create policy "Public read access" on public.settings for select using (true);
 create policy "Public read access" on public.coupons for select using (true);
+
+-- NOTE: Write policies (insert/update/delete) for admin-only tables
+-- (orders, customers, products, articles, settings, coupons, expenses)
+-- are managed directly in the Supabase dashboard and are not duplicated here.

@@ -11,9 +11,10 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   folder?: string;
   label?: string;
+  previewClass?: string;
 }
 
-const ImageUpload = ({ value, onChange, folder = "general", label = "תמונה" }: ImageUploadProps) => {
+const ImageUpload = ({ value, onChange, folder = "general", label = "תמונה", previewClass }: ImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +42,7 @@ const ImageUpload = ({ value, onChange, folder = "general", label = "תמונה"
 
       const { error: uploadError } = await supabase.storage
         .from("images")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
@@ -75,7 +76,7 @@ const ImageUpload = ({ value, onChange, folder = "general", label = "תמונה"
           <img
             src={value}
             alt="Preview"
-            className="w-full h-32 object-cover rounded-lg border"
+            className={previewClass ?? "w-full h-32 object-cover rounded-lg border"}
           />
           <Button
             type="button"

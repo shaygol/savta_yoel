@@ -185,50 +185,69 @@ const SettingsTab = () => {
                   value={settings.logo_url || ""}
                   onChange={(url) => updateSetting("logo_url", url)}
                   folder="branding"
+                  previewClass="h-20 w-full object-contain rounded-lg border bg-muted/30"
                 />
                 <div className="space-y-3">
                   <Label className="text-base font-medium">תמונות Hero (מתחלפות אוטומטית)</Label>
-                  {(settings.hero_images || []).map((url: string, index: number) => (
-                    <div key={index} className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <ImageUpload
-                          label={`תמונה ${index + 1}`}
-                          value={url}
-                          onChange={(newUrl) => {
-                            const updated = [...(settings.hero_images || [])];
-                            updated[index] = newUrl;
-                            updateSetting("hero_images", updated);
-                          }}
-                          folder="branding"
-                        />
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          const updated = (settings.hero_images || []).filter((_: string, i: number) => i !== index);
-                          updateSetting("hero_images", updated);
-                        }}
-                      >
-                        הסר
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const current = settings.hero_images || [];
-                      // If migrating from old single image, include it
-                      if (current.length === 0 && settings.hero_image_url) {
-                        updateSetting("hero_images", [settings.hero_image_url, ""]);
-                      } else {
+                  <div className="grid grid-cols-3 gap-3">
+                    {(() => {
+                      const heroImages: string[] = settings.hero_images?.length
+                        ? settings.hero_images
+                        : settings.hero_image_url
+                        ? [settings.hero_image_url]
+                        : [];
+                      return heroImages.map((url: string, index: number) => (
+                        <div key={index} className="relative group">
+                          {url ? (
+                            <>
+                              <img
+                                src={url}
+                                alt={`תמונה ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg border"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  const updated = heroImages.filter((_: string, i: number) => i !== index);
+                                  updateSetting("hero_images", updated);
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <ImageUpload
+                              label={`תמונה ${index + 1}`}
+                              value={url}
+                              onChange={(newUrl) => {
+                                const updated = [...heroImages];
+                                updated[index] = newUrl;
+                                updateSetting("hero_images", updated);
+                              }}
+                              folder="branding"
+                              previewClass="w-full h-24 object-cover rounded-lg border"
+                            />
+                          )}
+                        </div>
+                      ));
+                    })()}
+                    <button
+                      type="button"
+                      className="h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors text-sm"
+                      onClick={() => {
+                        const current: string[] = settings.hero_images?.length
+                          ? settings.hero_images
+                          : settings.hero_image_url
+                          ? [settings.hero_image_url]
+                          : [];
                         updateSetting("hero_images", [...current, ""]);
-                      }
-                    }}
-                  >
-                    + הוסף תמונה
-                  </Button>
+                      }}
+                    >
+                      <span className="text-xl leading-none">+</span>
+                      <span>הוסף תמונה</span>
+                    </button>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -244,6 +263,13 @@ const SettingsTab = () => {
                     onChange={(e) => updateSetting("paybox_url", e.target.value)}
                     dir="ltr"
                   />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={settings.paybox_enabled || false}
+                    onCheckedChange={(checked) => updateSetting("paybox_enabled", checked)}
+                  />
+                  <Label>אפשר תשלום ב-PayBox</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch

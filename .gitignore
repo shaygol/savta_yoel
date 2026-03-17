@@ -18,8 +18,3 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Temp files created by setup.bat
-.lovable-temp/
-
-# Generated after setup (project-specific, not part of template)
-README_lovable.md
